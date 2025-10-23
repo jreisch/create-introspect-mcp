@@ -1,0 +1,13 @@
+# Python Module Introspection MCP Server Requirements
+
+# Core dependencies for introspection
+# (Python standard library modules: inspect, importlib, json, sqlite3)
+
+# MCP Server implementation
+fastmcp>=0.1.0
+
+# Database utilities (optional - for advanced database operations)
+sqlite-utils>=3.36.0
+
+# For MCP integration
+mcp>=0.9.0

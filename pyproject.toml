@@ -1,0 +1,126 @@
+[project]
+name = "create-introspect-mcp"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp>=1.18.0",
+]
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.406",
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
+    "pytest-cov>=7.0.0",
+    "ruff>=0.14.1",
+]
+
+[tool.ruff]
+# Target Python 3.10+
+target-version = "py310"
+
+# Line length to match common standards
+line-length = 100
+
+# Exclude paths
+exclude = [
+    ".git",
+    "__pycache__",
+    "*.pyc",
+    ".pytest_cache",
+    ".ruff_cache",
+    "*.egg-info",
+]
+
+[tool.ruff.lint]
+# Enable specific rule sets
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "SIM", # flake8-simplify
+    "TCH", # flake8-type-checking
+]
+
+# Ignore specific rules
+ignore = [
+    "E501",  # Line too long (handled by formatter)
+    "B008",  # Do not perform function call in argument defaults
+    "B904",  # Use raise from within except
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    "S101",  # Allow assert in tests
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["scripts"]
+
+[tool.pyright]
+# Python version
+pythonVersion = "3.10"
+pythonPlatform = "All"
+
+# Type checking mode
+typeCheckingMode = "basic"
+
+# Include/exclude paths
+include = ["scripts", "tests"]
+exclude = [
+    "**/__pycache__",
+    "**/.pytest_cache",
+    "**/.ruff_cache",
+]
+
+# Reporting
+reportMissingImports = true
+reportMissingTypeStubs = false
+reportUnusedImport = "warning"
+reportUnusedVariable = "warning"
+reportDuplicateImport = "error"
+reportUntypedFunctionDecorator = "none"
+reportPrivateUsage = "none"
+
+# Strict mode options (can enable later)
+# strictListInference = true
+# strictDictionaryInference = true
+# strictParameterNoneValue = true
+
+[tool.pytest.ini_options]
+# Test discovery
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+# Output options
+addopts = [
+    "-v",                    # Verbose
+    "--strict-markers",      # Strict marker checking
+    "--tb=short",           # Shorter traceback format
+    "--cov=scripts",        # Coverage for scripts
+    "--cov-report=term-missing",  # Show missing lines
+    "--cov-report=html",    # HTML coverage report
+]
+
+# Markers
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+
+# Asyncio configuration
+asyncio_mode = "auto"
+
+# Minimum coverage threshold (can increase later)
+# [tool.coverage.report]
+# fail_under = 80
