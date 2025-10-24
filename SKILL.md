@@ -11,11 +11,14 @@ Create high-quality MCP servers that introspect Python modules and provide compr
 
 This skill guides you through creating an introspection-based MCP server for any Python module. The server will:
 - Extract classes, functions, parameters, and documentation via Python introspection
-- Store API data in a normalized SQLite database with full-text search
-- Expose MCP tools for searching, querying, and exploring the API
+- Store API data in a normalized SQLite database with full-text search (includes root_module support)
+- Expose 8 MCP tools for searching, querying, and exploring the API
+- Package as distributable with auto-versioning
 - Integrate seamlessly with Claude Code
 
 **Introspection Approach:** Uses Python's `inspect` module to analyze live objects at runtime, capturing signatures, docstrings, parameters, and inheritance relationships.
+
+**NEW: Publishing System** - Automatically packages servers as portable, ready-to-install distributions with configuration files and documentation.
 
 ## When to Use This Skill
 
@@ -24,11 +27,63 @@ Use this skill when users request:
 - "Build API documentation system for [library]"
 - "Set up introspection server for Python package"
 - "Make [module]'s API searchable"
+- "Package/publish an MCP server for distribution"
+- "Create shareable MCP server for [library]"
 - Any request to create API reference tools for Python libraries
+
+## Quick Start (Recommended)
+
+For most users, use the **autonomous workflow**:
+
+```bash
+# Step 1: Create MCP server (fully autonomous)
+python .claude/skills/create-introspect-mcp/scripts/create_full_mcp_server.py MODULE_NAME
+
+# Step 2: Generate examples (recommended for best usability)
+# See Phase 4 for detailed prompts to generate 500-1000 examples
+
+# Step 3: Publish as distributable (fully autonomous)
+python .claude/skills/create-introspect-mcp/scripts/publish.py \
+    --server-dir MODULE_NAME_mcp_server \
+    --database MODULE_NAME_api.db \
+    --module-name MODULE_NAME
+
+# Step 4: Install in project
+cd dist/build_001/MODULE_NAME-introspection
+cp -r .mcp.json .claude /path/to/your/project/
+
+# Step 5: Restart Claude Code
+```
+
+**Example with requests module:**
+```bash
+# Complete workflow with example generation:
+
+# 1. Create MCP server
+python .claude/skills/create-introspect-mcp/scripts/create_full_mcp_server.py requests
+
+# 2. Generate examples (see Phase 4 for detailed prompts)
+#    - Phase 4.1: 100 use-case examples via custom script
+#    - Phase 4.2: Systematic coverage via 10 parallel agents
+
+# 3. Publish distributable
+python .claude/skills/create-introspect-mcp/scripts/publish.py \
+    --server-dir requests_mcp_server \
+    --database requests_api.db \
+    --module-name requests
+
+# 4. Install
+cd dist/build_001/requests-introspection
+cp -r .mcp.json .claude ~/my-project/
+
+# Restart Claude Code → Done!
+```
+
+Continue reading for detailed phase-by-phase instructions.
 
 ## High-Level Workflow
 
-Creating an introspection MCP server involves four phases:
+Creating an introspection MCP server involves six phases:
 
 ### Phase 1: Module Analysis and Planning
 1. Identify target Python module
@@ -38,19 +93,31 @@ Creating an introspection MCP server involves four phases:
 
 ### Phase 2: Introspection and Database Creation
 1. Run introspection scripts
-2. Create normalized SQLite database
+2. Create normalized SQLite database (with root_module support)
 3. Populate with API data
 4. Verify database quality
 
 ### Phase 3: MCP Server Implementation
 1. Design MCP tools based on use cases
-2. Implement server using FastMCP
+2. Implement server using MCP protocol
 3. Create query functions
 4. Add full-text search
 
-### Phase 4: Testing and Integration
+### Phase 4: Example Generation (NEW!)
+1. Generate top use-case examples
+2. Achieve systematic 100% API coverage
+3. Verify example quality
+4. Integrate examples with MCP server
+
+### Phase 5: Publishing and Distribution
+1. Package server as distributable
+2. Generate configuration files
+3. Create installation documentation
+4. Version with build numbers
+
+### Phase 6: Testing and Integration
 1. Test MCP server locally
-2. Configure Claude Code integration
+2. Install in target project
 3. Validate with real queries
 4. Document usage
 
@@ -270,69 +337,280 @@ def search_api_fts(db_path: str, query: str, limit: int = 10) -> List[Dict]:
 
 ---
 
-## Phase 4: Testing and Integration
+## Phase 4: Example Generation
 
-### Step 4.1: Test MCP Server Locally
+**IMPORTANT: This phase dramatically improves MCP server usability by adding 500-1000 practical code examples.**
 
-Use the validation script:
+### Overview
+
+Two-phase approach to populate the database with comprehensive, verified code examples:
+- **Phase 4.1**: Top 100 use-case examples (common patterns)
+- **Phase 4.2**: Systematic 100% API coverage (2-3 examples per entity)
+
+### Step 4.1: Generate Top Use-Case Examples
+
+**Objective**: Create 100 practical examples covering the most common usage patterns.
+
+**Prompt Template for Claude:**
+
+```
+Using the {module_name}-introspection MCP server, write the top 100 ways that the {module_name} module is used by developers in Python code.
+
+1. First, use the MCP server to explore the API:
+   - search_api for common patterns
+   - list_functions to see available functions
+   - list_classes to see available classes
+   - get_function_info and get_class_info for details
+
+2. Organize examples into 8-10 logical categories based on the module's purpose
+
+3. For each example, provide:
+   - A clear description (what it demonstrates)
+   - 2-5 lines of practical, runnable code
+   - Association with specific function or class name
+
+4. Verify each example's correctness using the MCP server
+
+After generating the list, write a Python script to add these 100 examples to the database. The script should:
+- Look up function_id or class_id from the database
+- Insert into examples table with proper foreign keys
+- Handle both function and class linkages
+
+Database schema for examples table:
+- code (TEXT NOT NULL)
+- description (TEXT)
+- function_id (INTEGER, nullable)
+- class_id (INTEGER, nullable)
+
+IMPORTANT: For FUNCTIONS, set function_id and leave class_id NULL. For CLASSES, set class_id and leave function_id NULL.
+```
+
+**Expected Result**: 100 curated examples organized by use case, immediately useful for common scenarios.
+
+### Step 4.2: Systematic 100% API Coverage
+
+**Objective**: Ensure every function and class has 2-3 specific code examples.
+
+**Step 4.2.1: Divide Entities into Groups**
 
 ```bash
-python scripts/validate_server.py mcp_server/server.py \
-    --test-queries "search for layout" "get Graph class" "list all classes"
+# Export and divide all entities
+python .claude/skills/create-introspect-mcp/scripts/divide_entities.py \
+    MODULE_NAME_api.db \
+    --groups 10 \
+    --output-dir /tmp
 ```
 
-**What this checks:**
-- Server starts correctly
-- Tools are accessible
-- Queries return results
-- Error handling works
-- Performance is reasonable
+This creates 10 files: `/tmp/entity_group_1.json` through `/tmp/entity_group_10.json`
 
-### Step 4.2: Configure Claude Code Integration
+**Step 4.2.2: Launch Parallel Agents**
 
-Add to `.mcp.json`:
+**Orchestration Prompt for Claude:**
 
-```json
-{
-  "mcpServers": {
-    "MODULE_NAME-introspection": {
-      "type": "stdio",
-      "command": "uv",
-      "args": ["run", "python", "-m", "mcp_server.server"],
-      "cwd": "/absolute/path/to/mcp_server",
-      "env": {
-        "PYTHONPATH": "/absolute/path/to/mcp_server",
-        "DB_PATH": "/absolute/path/to/MODULE_NAME_api.db"
-      },
-      "description": "MODULE_NAME API introspection - X tools for querying Y classes, Z functions"
-    }
-  }
-}
+```
+Using HAIKU MODEL subagents in parallel, systematically create code examples for every function and class in the {module_name} API database.
+
+Your job as orchestrator:
+1. Verify entity groups exist at /tmp/entity_group_*.json (1-10)
+2. Launch 10 agents concurrently using the prompt template below
+3. Wait for all agents to complete
+4. Verify results with: python .claude/skills/create-introspect-mcp/scripts/verify_coverage.py {database}.db
+
+Agent Prompt Template:
+---
+You are agent #{N} of 10 working in parallel to add code examples to the {module_name} API database at {database_path}.
+
+Your task:
+1. Read your assigned entities from /tmp/entity_group_{N}.json
+2. For EACH entity:
+   a. Use {module_name}-introspection MCP server to get entity info:
+      - For FUNCTION entities: get_function_info(function_name="...", include_parameters=True)
+      - For CLASS entities: get_class_info(class_name="...", include_methods=True)
+   b. Create 2-3 practical, working code examples demonstrating usage
+   c. Verify examples are correct and realistic
+   d. Insert into database:
+      INSERT INTO examples (code, description, function_id, class_id)
+      VALUES (?, ?, ?, ?)
+
+Database linkage rules:
+- For FUNCTION entities: Set function_id=entity.id, leave class_id=NULL
+- For CLASS entities: Set class_id=entity.id, leave function_id=NULL
+- Each example: 2-5 lines of concise, practical code
+- Include clear description for each example
+
+Work systematically through ALL entities in your group. Report:
+- Total entities processed
+- Total examples added
+- Any entities skipped with reasons
+---
+
+Launch all 10 agents in a single message using multiple Task tool calls.
 ```
 
-Add permissions to `.claude/settings.local.json`:
+**Expected Result**: 500-600 entity-specific examples achieving 100% API coverage.
 
-```json
-{
-  "permissions": {
-    "allow": [
-      "mcp__MODULE_NAME-introspection__search_api",
-      "mcp__MODULE_NAME-introspection__get_class_info",
-      "mcp__MODULE_NAME-introspection__get_function_info",
-      "mcp__MODULE_NAME-introspection__list_classes",
-      "mcp__MODULE_NAME-introspection__list_functions",
-      "mcp__MODULE_NAME-introspection__find_examples",
-      "mcp__MODULE_NAME-introspection__get_parameters",
-      "mcp__MODULE_NAME-introspection__get_related"
-    ]
-  },
-  "enabledMcpjsonServers": [
-    "MODULE_NAME-introspection"
-  ]
-}
+### Step 4.3: Verify Example Coverage
+
+```bash
+# Check coverage statistics
+python .claude/skills/create-introspect-mcp/scripts/verify_coverage.py MODULE_NAME_api.db
 ```
 
-### Step 4.3: Validate with Real Queries
+**Expected Output:**
+```
+======================================================================
+Example Coverage Report
+======================================================================
+
+Total Examples: 658
+
+Function Coverage: 177/177 (100.0%)
+  Avg examples per function: 2.84
+
+Class Coverage: 44/44 (100.0%)
+  Avg examples per class: 3.55
+
+✓ No orphaned examples
+
+======================================================================
+Overall Coverage: 221/221 entities (100.0%)
+✓ 100% API COVERAGE ACHIEVED!
+======================================================================
+```
+
+### Step 4.4: Quality Checklist
+
+- [ ] Phase 4.1: 80-100 use-case examples added
+- [ ] Phase 4.2: All entities have 2-3 examples
+- [ ] All examples are 2-5 lines of practical code
+- [ ] Each example has clear description
+- [ ] Examples verified against MCP server
+- [ ] Proper function_id/class_id linkage
+- [ ] No orphaned examples (both IDs NULL)
+- [ ] find_examples MCP tool returns results
+
+### Benefits of This Approach
+
+1. **MCP-First**: Uses introspection server as source of truth
+2. **Two-Phase Strategy**: Common patterns first, then completeness
+3. **Parallel Processing**: 10x speedup with concurrent agents
+4. **High Quality**: Verified, practical, documented examples
+5. **Immediate Usability**: Examples searchable via find_examples tool
+6. **Replicable**: Works for any Python module with introspection server
+
+### Time Investment
+
+- Phase 4.1: Manual curation + script creation (~1-2 hours)
+- Phase 4.2: Entity division + parallel execution (~1 hour)
+- **Total: ~2-3 hours for complete example coverage**
+
+---
+
+## Phase 5: Publishing and Distribution
+
+### Step 5.1: Publish as Distributable Package
+
+**IMPORTANT: Always publish before sharing or installing in other projects**
+
+Use the publish script to create a portable, ready-to-install package:
+
+```bash
+python .claude/skills/create-introspect-mcp/scripts/publish.py \
+    --server-dir MODULE_NAME_mcp_server \
+    --database MODULE_NAME_api.db \
+    --module-name MODULE_NAME
+```
+
+**Example for requests module:**
+```bash
+python .claude/skills/create-introspect-mcp/scripts/publish.py \
+    --server-dir requests_mcp_server \
+    --database requests_api.db \
+    --module-name requests
+```
+
+**What this creates:**
+```
+dist/build_001/requests-introspection/
+├── .mcp.json                          # Ready-to-use MCP config
+├── README.md                          # Installation instructions
+└── .claude/
+    ├── settings.local.json            # Pre-configured permissions
+    └── mcp/
+        └── requests-introspection/    # Complete MCP server
+            ├── README.md              # Full documentation
+            ├── server.py              # MCP server
+            ├── requests_api.db        # Database (0.28 MB)
+            └── requirements.txt       # Dependencies
+```
+
+**Key Features:**
+- ✓ Auto-incrementing build numbers (build_001, build_002, ...)
+- ✓ Relative paths (works anywhere, no hardcoding)
+- ✓ Complete configuration files generated
+- ✓ Full documentation included
+- ✓ Database statistics extracted
+
+**Output:**
+```
+======================================================================
+SUCCESS! Build 001 Published
+======================================================================
+
+Location: dist/build_001/requests-introspection
+
+To install in a project:
+  cd dist/build_001/requests-introspection
+  cp -r .mcp.json .claude /path/to/your/project/
+  # Then restart Claude Code
+```
+
+### Step 5.2: Distribution Options
+
+**Option A: Local Install**
+```bash
+cd dist/build_001/requests-introspection
+cp -r .mcp.json .claude /path/to/your/project/
+```
+
+**Option B: Create Tarball**
+```bash
+cd dist
+tar -czf requests-introspection-v001.tar.gz build_001
+# Share this tarball
+```
+
+**Option C: Git Repository**
+```bash
+cd dist/build_001/requests-introspection
+git init && git add . && git commit -m "Initial release"
+git remote add origin <repo-url>
+git push -u origin main
+```
+
+---
+
+## Phase 6: Testing and Integration
+
+### Step 6.1: Install Published Build
+
+**From Phase 5, you now have a published build. Install it:**
+
+```bash
+# Navigate to published build
+cd dist/build_001/MODULE_NAME-introspection
+
+# Copy to target project (simple installation)
+cp -r .mcp.json .claude /path/to/your/project/
+```
+
+**That's it! No manual configuration needed.**
+
+### Step 6.2: Restart Claude Code
+
+Restart Claude Code to load the new MCP server.
+
+### Step 6.3: Validate with Real Queries
 
 Restart Claude Code and test the MCP tools:
 
@@ -349,17 +627,14 @@ Claude, get detailed information about the MainClass class
 Claude, find examples showing how to use the transform function
 ```
 
-### Step 4.4: Create Documentation
+### Step 6.4: Documentation
 
-Generate user-facing documentation:
-
-**README.md Structure:**
-1. Overview - What the server provides
-2. Installation - Setup instructions
-3. Available Tools - List of 8 MCP tools with descriptions
-4. Usage Examples - Common query patterns
-5. Database Statistics - What was captured
-6. Limitations - Known gaps (C extensions, etc.)
+The publish script automatically creates:
+- Installation README at build root
+- Complete documentation in server directory
+- All 8 MCP tools described
+- Usage examples included
+- Database statistics shown
 
 ---
 

@@ -41,6 +41,11 @@ class DatabaseCreator:
         if self.verbose:
             print(message, file=sys.stderr)
 
+    @staticmethod
+    def get_root_module(module_name: str) -> str:
+        """Extract root module name from full module name"""
+        return module_name.split('.')[0] if '.' in module_name else module_name
+
     def create_schema(self):
         """Create database schema with FTS5 tables"""
         self.log("Creating database schema...")
@@ -53,7 +58,8 @@ class DatabaseCreator:
             CREATE TABLE IF NOT EXISTS modules (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL UNIQUE,
-                docstring TEXT
+                docstring TEXT,
+                root_module TEXT
             )
         """)
 
@@ -136,6 +142,7 @@ class DatabaseCreator:
         cursor.execute(
             "CREATE INDEX IF NOT EXISTS idx_parameters_function ON parameters(function_id)"
         )
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_modules_root ON modules(root_module)")
 
         # Create FTS5 virtual tables for full-text search
         self.log("Creating FTS5 search tables...")
@@ -220,19 +227,22 @@ class DatabaseCreator:
         assert self.conn is not None
         cursor = self.conn.cursor()
 
+        module_name = module_data["name"]
+        root_module = self.get_root_module(module_name)
+
         cursor.execute(
             """
-            INSERT INTO modules (name, docstring)
-            VALUES (?, ?)
+            INSERT INTO modules (name, docstring, root_module)
+            VALUES (?, ?, ?)
         """,
-            (module_data["name"], module_data.get("docstring")),
+            (module_name, module_data.get("docstring"), root_module),
         )
 
         module_id = cursor.lastrowid
         assert module_id is not None
-        self.module_ids[module_data["name"]] = module_id
+        self.module_ids[module_name] = module_id
 
-        self.log(f"  Inserted module: {module_data['name']} (ID: {module_id})")
+        self.log(f"  Inserted module: {module_name} (root: {root_module}, ID: {module_id})")
 
         return module_id
 
