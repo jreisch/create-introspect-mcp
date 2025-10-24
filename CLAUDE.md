@@ -78,16 +78,16 @@ python scripts/validate_server.py mcp_server/server.py --verbose
 ### Publishing the Skill
 ```bash
 # Create a clean distribution build (auto-increment build number)
-python publish.py
+uv run publish.py
 
 # Create a specific build number
-python publish.py --build-number 5
+uv run publish.py --build-number 5
 
 # Preview what would be copied (dry run)
-python publish.py --dry-run
+uv run publish.py --dry-run
 
 # Copy the latest build to another project
-cp -r dist/build_0001/create-introspect-mcp /path/to/project/.claude/skills/
+cp -r dist/build_*/create-introspect-mcp /path/to/project/.claude/skills/
 ```
 
 The publish script creates versioned builds in `dist/build_NNNN/create-introspect-mcp/` containing only the files needed for the Claude Code skill to function (excludes tests, dev config, etc.).
@@ -239,7 +239,7 @@ create-introspect-mcp/
 ├── pyproject.toml           # Project config (ruff, pyright, pytest)
 ├── dev_requirements.txt     # Dev dependencies
 ├── SKILL.md                 # Complete 4-phase workflow guide (582 lines)
-└── STATUS.md                # Project status and metrics
+└── docs/STATUS.md                # Project status and metrics
 ```
 
 ## Key Quality Metrics

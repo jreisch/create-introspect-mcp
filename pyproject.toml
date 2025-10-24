@@ -1,7 +1,7 @@
 [project]
 name = "create-introspect-mcp"
 version = "0.1.0"
-description = "Add your description here"
+description = "Python toolkit for creating introspection-based MCP servers"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -62,7 +62,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["scripts"]
+known-first-party = ["src"]
 
 [tool.pyright]
 # Python version
@@ -73,11 +73,12 @@ pythonPlatform = "All"
 typeCheckingMode = "basic"
 
 # Include/exclude paths
-include = ["scripts", "tests"]
+include = ["src/scripts"]
 exclude = [
     "**/__pycache__",
     "**/.pytest_cache",
     "**/.ruff_cache",
+    "tests",
 ]
 
 # Reporting
@@ -106,7 +107,7 @@ addopts = [
     "-v",                    # Verbose
     "--strict-markers",      # Strict marker checking
     "--tb=short",           # Shorter traceback format
-    "--cov=scripts",        # Coverage for scripts
+    "--cov=src/scripts",    # Coverage for scripts
     "--cov-report=term-missing",  # Show missing lines
     "--cov-report=html",    # HTML coverage report
 ]

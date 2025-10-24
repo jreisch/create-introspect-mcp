@@ -78,7 +78,10 @@ if __name__ == "__main__":
         print("Usage: run_with_env.py <script_path> [args...]", file=sys.stderr)
         print("", file=sys.stderr)
         print("Example:", file=sys.stderr)
-        print("  python run_with_env.py scripts/introspect.py requests --output requests.json", file=sys.stderr)
+        print(
+            "  python run_with_env.py scripts/introspect.py requests --output requests.json",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     run_script(sys.argv[1], sys.argv[2:])

@@ -4,7 +4,7 @@ import sqlite3
 
 import pytest
 
-from scripts.create_database import DatabaseCreator
+from src.scripts.create_database import DatabaseCreator
 
 
 class TestDatabaseCreator:
@@ -212,3 +212,125 @@ class TestDatabaseStatistics:
         assert function_count > 0
 
         conn.close()
+
+
+class TestRootModuleFeature:
+    """Tests for root_module support."""
+
+    def test_get_root_module_simple(self):
+        """Test extracting root module from simple module name."""
+        assert DatabaseCreator.get_root_module("requests") == "requests"
+
+    def test_get_root_module_submodule(self):
+        """Test extracting root module from submodule."""
+        assert DatabaseCreator.get_root_module("requests.models") == "requests"
+
+    def test_get_root_module_nested(self):
+        """Test extracting root module from deeply nested module."""
+        assert DatabaseCreator.get_root_module("requests.models.auth.basic") == "requests"
+
+    def test_get_root_module_no_dot(self):
+        """Test module name without dots returns itself."""
+        assert DatabaseCreator.get_root_module("numpy") == "numpy"
+
+    def test_root_module_stored_in_database(self, temp_dir):
+        """Test that root_module is stored in database."""
+        db_path = temp_dir / "test.db"
+        creator = DatabaseCreator(str(db_path), verbose=False)
+        creator.conn = sqlite3.connect(str(db_path))
+        creator.conn.execute("PRAGMA foreign_keys = ON")
+        creator.create_schema()
+
+        # Insert module with submodule name
+        module_data = {"name": "requests.models", "docstring": "Models submodule"}
+
+        module_id = creator.insert_module(module_data)
+
+        # Verify root_module is stored correctly
+        cursor = creator.conn.execute(
+            "SELECT name, root_module FROM modules WHERE id = ?", (module_id,)
+        )
+        row = cursor.fetchone()
+        assert row[0] == "requests.models"
+        assert row[1] == "requests"
+
+        creator.conn.close()
+
+    def test_root_module_index_exists(self, temp_dir):
+        """Test that index on root_module column exists."""
+        db_path = temp_dir / "test.db"
+        creator = DatabaseCreator(str(db_path), verbose=False)
+        creator.conn = sqlite3.connect(str(db_path))
+        creator.conn.execute("PRAGMA foreign_keys = ON")
+        creator.create_schema()
+
+        # Check that index exists
+        cursor = creator.conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_modules_root'"
+        )
+        row = cursor.fetchone()
+        assert row is not None
+        assert row[0] == "idx_modules_root"
+
+        creator.conn.close()
+
+    def test_multiple_modules_same_root(self, temp_dir):
+        """Test inserting multiple modules with same root."""
+        db_path = temp_dir / "test.db"
+        creator = DatabaseCreator(str(db_path), verbose=False)
+        creator.conn = sqlite3.connect(str(db_path))
+        creator.conn.execute("PRAGMA foreign_keys = ON")
+        creator.create_schema()
+
+        # Insert multiple submodules
+        modules = [
+            {"name": "requests.models", "docstring": "Models"},
+            {"name": "requests.auth", "docstring": "Auth"},
+            {"name": "requests.sessions", "docstring": "Sessions"},
+        ]
+
+        for module_data in modules:
+            creator.insert_module(module_data)
+
+        # Verify all have same root_module
+        cursor = creator.conn.execute("SELECT DISTINCT root_module FROM modules")
+        roots = cursor.fetchall()
+        assert len(roots) == 1
+        assert roots[0][0] == "requests"
+
+        # Verify count
+        cursor = creator.conn.execute("SELECT COUNT(*) FROM modules WHERE root_module = 'requests'")
+        count = cursor.fetchone()[0]
+        assert count == 3
+
+        creator.conn.close()
+
+    def test_query_by_root_module(self, temp_dir):
+        """Test querying modules by root_module."""
+        db_path = temp_dir / "test.db"
+        creator = DatabaseCreator(str(db_path), verbose=False)
+        creator.conn = sqlite3.connect(str(db_path))
+        creator.conn.execute("PRAGMA foreign_keys = ON")
+        creator.create_schema()
+
+        # Insert modules from different roots
+        modules = [
+            {"name": "requests.models", "docstring": "Requests models"},
+            {"name": "requests.auth", "docstring": "Requests auth"},
+            {"name": "httpx.models", "docstring": "HTTPX models"},
+            {"name": "urllib3.connection", "docstring": "urllib3 connection"},
+        ]
+
+        for module_data in modules:
+            creator.insert_module(module_data)
+
+        # Query for requests modules only
+        cursor = creator.conn.execute(
+            "SELECT name FROM modules WHERE root_module = 'requests' ORDER BY name"
+        )
+        results = cursor.fetchall()
+        assert len(results) == 2
+        assert results[0][0] == "requests.auth"
+        assert results[1][0] == "requests.models"
+
+        creator.conn.close()

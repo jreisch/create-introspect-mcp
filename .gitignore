@@ -60,3 +60,6 @@ build/
 .mypy_cache/
 .pyright/
 .pytype/
+
+# Ruff
+.ruff_cache/

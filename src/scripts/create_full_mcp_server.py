@@ -25,13 +25,12 @@ Output:
 
 import argparse
 import json
-import os
 import subprocess
 import sys
 from pathlib import Path
 
 
-def run_phase(phase_name: str, cmd: list[str], cwd: Path = None):
+def run_phase(phase_name: str, cmd: list[str], cwd: Path | None = None):
     """Run a workflow phase with logging"""
     print(f"\n{'=' * 70}")
     print(f"PHASE: {phase_name}")
@@ -78,9 +77,9 @@ def create_mcp_config_template(module_name: str, server_dir: Path, api_db: Path)
                 "cwd": str(server_dir.absolute()),
                 "env": {
                     "PYTHONPATH": str(server_dir.absolute()),
-                    "DB_PATH": str(api_db.absolute())
+                    "DB_PATH": str(api_db.absolute()),
                 },
-                "description": f"{module_name} API introspection - 8 tools for searching API documentation"
+                "description": f"{module_name} API introspection - 8 tools for searching API documentation",
             }
         }
     }
@@ -95,22 +94,20 @@ def create_mcp_config_template(module_name: str, server_dir: Path, api_db: Path)
                 f"mcp__{module_name}-introspection__list_functions",
                 f"mcp__{module_name}-introspection__get_parameters",
                 f"mcp__{module_name}-introspection__find_examples",
-                f"mcp__{module_name}-introspection__get_related"
+                f"mcp__{module_name}-introspection__get_related",
             ]
         },
-        "enabledMcpjsonServers": [
-            f"{module_name}-introspection"
-        ]
+        "enabledMcpjsonServers": [f"{module_name}-introspection"],
     }
 
     # Save templates
     mcp_template = server_dir / "mcp.json.template"
     settings_template = server_dir / "settings.local.json.template"
 
-    with open(mcp_template, 'w') as f:
+    with open(mcp_template, "w") as f:
         json.dump(config, f, indent=2)
 
-    with open(settings_template, 'w') as f:
+    with open(settings_template, "w") as f:
         json.dump(settings, f, indent=2)
 
     return mcp_template, settings_template
@@ -131,10 +128,12 @@ Output files:
   - MODULE_NAME_api.db (SQLite database with FTS5 search)
   - MODULE_NAME_mcp_server/ (complete MCP server)
   - MODULE_NAME_mcp_server/mcp.json.template (config template)
-"""
+""",
     )
     parser.add_argument("module", help="Python module name to introspect")
-    parser.add_argument("--max-depth", type=int, default=2, help="Max introspection depth (default: 2)")
+    parser.add_argument(
+        "--max-depth", type=int, default=2, help="Max introspection depth (default: 2)"
+    )
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
 
     args = parser.parse_args()
@@ -165,8 +164,10 @@ Output files:
     introspect_cmd = python_cmd + [
         str(skill_dir / "scripts" / "introspect.py"),
         args.module,
-        "--output", str(introspect_json),
-        "--max-depth", str(args.max_depth)
+        "--output",
+        str(introspect_json),
+        "--max-depth",
+        str(args.max_depth),
     ]
     run_phase("1. Module Introspection", introspect_cmd)
 
@@ -174,7 +175,8 @@ Output files:
     db_cmd = python_cmd + [
         str(skill_dir / "scripts" / "create_database.py"),
         str(introspect_json),
-        "--output", str(api_db),
+        "--output",
+        str(api_db),
     ]
     if args.verbose:
         db_cmd.append("--verbose")
@@ -184,8 +186,10 @@ Output files:
     server_cmd = python_cmd + [
         str(skill_dir / "scripts" / "create_mcp_server.py"),
         args.module,
-        "--database", str(api_db),
-        "--output", str(server_dir)
+        "--database",
+        str(api_db),
+        "--output",
+        str(server_dir),
     ]
     run_phase("3. MCP Server Generation", server_cmd)
 
@@ -194,9 +198,7 @@ Output files:
     print("PHASE: 4. Configuration Template Creation")
     print(f"{'=' * 70}\n")
 
-    mcp_template, settings_template = create_mcp_config_template(
-        args.module, server_dir, api_db
-    )
+    mcp_template, settings_template = create_mcp_config_template(args.module, server_dir, api_db)
 
     print(f"✓ Created: {mcp_template}")
     print(f"✓ Created: {settings_template}")
@@ -207,13 +209,13 @@ Output files:
     print("=" * 70)
     print(f"\nServer location: {server_dir}")
     print(f"Database: {api_db} ({api_db.stat().st_size / 1024 / 1024:.2f} MB)")
-    print(f"\nConfiguration templates:")
+    print("\nConfiguration templates:")
     print(f"  - {mcp_template}")
     print(f"  - {settings_template}")
     print("\nNext steps:")
     print(f"  1. Copy {mcp_template} contents to .mcp.json")
     print(f"  2. Copy {settings_template} contents to .claude/settings.local.json")
-    print(f"  3. Restart Claude Code")
+    print("  3. Restart Claude Code")
     print(f"  4. Test with: 'Search for {args.module} classes'")
     print()
 

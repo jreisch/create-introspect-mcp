@@ -64,10 +64,16 @@ def divide_entities(entities: list[dict], num_groups: int = 10) -> list[list[dic
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Divide entities into groups for parallel processing")
+    parser = argparse.ArgumentParser(
+        description="Divide entities into groups for parallel processing"
+    )
     parser.add_argument("database", help="Path to the SQLite database")
-    parser.add_argument("--groups", type=int, default=10, help="Number of groups to create (default: 10)")
-    parser.add_argument("--output-dir", default="/tmp", help="Output directory for group files (default: /tmp)")
+    parser.add_argument(
+        "--groups", type=int, default=10, help="Number of groups to create (default: 10)"
+    )
+    parser.add_argument(
+        "--output-dir", default="/tmp", help="Output directory for group files (default: /tmp)"
+    )
 
     args = parser.parse_args()
 

@@ -37,8 +37,8 @@ import json
 import shutil
 import sqlite3
 import sys
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 
 class MCPPublisher:
@@ -50,7 +50,7 @@ class MCPPublisher:
         database_path: Path,
         module_name: str,
         output_dir: Path,
-        build_number: int | None = None
+        build_number: int | None = None,
     ):
         self.server_dir = server_dir
         self.database_path = database_path
@@ -72,8 +72,7 @@ class MCPPublisher:
             return 1
 
         existing_builds = [
-            d for d in self.output_dir.iterdir()
-            if d.is_dir() and d.name.startswith("build_")
+            d for d in self.output_dir.iterdir() if d.is_dir() and d.name.startswith("build_")
         ]
 
         if not existing_builds:
@@ -136,17 +135,13 @@ class MCPPublisher:
                 self.mcp_name: {
                     "type": "stdio",
                     "command": "uv",
-                    "args": [
-                        "run",
-                        "python",
-                        "server.py"
-                    ],
+                    "args": ["run", "python", "server.py"],
                     "cwd": f".claude/mcp/{self.mcp_name}",
                     "env": {
                         "PYTHONPATH": f".claude/mcp/{self.mcp_name}",
-                        "DB_PATH": f".claude/mcp/{self.mcp_name}/{self.database_path.name}"
+                        "DB_PATH": f".claude/mcp/{self.mcp_name}/{self.database_path.name}",
                     },
-                    "description": f"{self.module_name} API introspection - 8 tools for searching classes, functions, and API documentation"
+                    "description": f"{self.module_name} API introspection - 8 tools for searching classes, functions, and API documentation",
                 }
             }
         }
@@ -164,22 +159,14 @@ class MCPPublisher:
             "list_functions",
             "get_parameters",
             "find_examples",
-            "get_related"
+            "get_related",
         ]
 
-        permissions = [
-            f"mcp__{self.mcp_name}__{tool}" for tool in tools
-        ]
+        permissions = [f"mcp__{self.mcp_name}__{tool}" for tool in tools]
 
         settings = {
-            "permissions": {
-                "allow": permissions,
-                "deny": [],
-                "ask": []
-            },
-            "enabledMcpjsonServers": [
-                self.mcp_name
-            ]
+            "permissions": {"allow": permissions, "deny": [], "ask": []},
+            "enabledMcpjsonServers": [self.mcp_name],
         }
 
         return settings
@@ -420,7 +407,7 @@ mcp>=1.0.0
         # Copy server files
         print(f"\nCopying server files to {mcp_server_dir.relative_to(self.build_dir)}...")
         shutil.copy2(server_py, mcp_server_dir / "server.py")
-        print(f"  ✓ server.py")
+        print("  ✓ server.py")
 
         # Copy database
         shutil.copy2(self.database_path, mcp_server_dir / self.database_path.name)
@@ -430,25 +417,25 @@ mcp>=1.0.0
         # Create README
         readme_content = self.create_readme(stats)
         (mcp_server_dir / "README.md").write_text(readme_content)
-        print(f"  ✓ README.md")
+        print("  ✓ README.md")
 
         # Create requirements.txt
         requirements_content = self.create_requirements_txt()
         (mcp_server_dir / "requirements.txt").write_text(requirements_content)
-        print(f"  ✓ requirements.txt")
+        print("  ✓ requirements.txt")
 
         # Create .mcp.json at root of build
-        print(f"\nCreating configuration files at build root...")
+        print("\nCreating configuration files at build root...")
         mcp_config = self.create_mcp_json()
         (self.build_dir / ".mcp.json").write_text(json.dumps(mcp_config, indent=2))
-        print(f"  ✓ .mcp.json")
+        print("  ✓ .mcp.json")
 
         # Create .claude/settings.local.json
         settings_config = self.create_settings_json()
         claude_dir = self.build_dir / ".claude"
         claude_dir.mkdir(exist_ok=True)
         (claude_dir / "settings.local.json").write_text(json.dumps(settings_config, indent=2))
-        print(f"  ✓ .claude/settings.local.json")
+        print("  ✓ .claude/settings.local.json")
 
         # Create installation README at build root
         install_readme = f"""# {self.mcp_name} - Build {self.build_number:03d}
@@ -478,38 +465,40 @@ See `.claude/mcp/{self.mcp_name}/README.md` for complete documentation.
 - Module: {self.module_name}
 - Build: {self.build_number:03d}
 - Date: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-- Classes: {stats.get('classes', 'N/A')}
-- Functions: {stats.get('functions', 0) + stats.get('methods', 0)}
+- Classes: {stats.get("classes", "N/A")}
+- Functions: {stats.get("functions", 0) + stats.get("methods", 0)}
 """
         (self.build_dir / "README.md").write_text(install_readme)
-        print(f"  ✓ README.md (installation guide)")
+        print("  ✓ README.md (installation guide)")
 
         # Print summary
         print(f"\n{'=' * 70}")
         print(f"SUCCESS! Build {self.build_number:03d} Published")
         print(f"{'=' * 70}")
         print(f"\nLocation: {self.build_dir}")
-        print(f"\nDirectory structure:")
+        print("\nDirectory structure:")
         print(f"  {self.build_dir.name}/")
-        print(f"  ├── README.md                      (installation instructions)")
-        print(f"  ├── .mcp.json                      (MCP server config)")
-        print(f"  └── .claude/")
-        print(f"      ├── settings.local.json        (permissions)")
-        print(f"      └── mcp/")
+        print("  ├── README.md                      (installation instructions)")
+        print("  ├── .mcp.json                      (MCP server config)")
+        print("  └── .claude/")
+        print("      ├── settings.local.json        (permissions)")
+        print("      └── mcp/")
         print(f"          └── {self.mcp_name}/")
-        print(f"              ├── README.md           (full documentation)")
-        print(f"              ├── server.py           (MCP server)")
+        print("              ├── README.md           (full documentation)")
+        print("              ├── server.py           (MCP server)")
         print(f"              ├── {self.database_path.name}")
-        print(f"              └── requirements.txt")
+        print("              └── requirements.txt")
 
-        print(f"\nTo install in a project:")
+        print("\nTo install in a project:")
         print(f"  cd {self.build_dir}")
-        print(f"  cp -r .mcp.json .claude /path/to/your/project/")
-        print(f"  # Then restart Claude Code")
+        print("  cp -r .mcp.json .claude /path/to/your/project/")
+        print("  # Then restart Claude Code")
 
-        print(f"\nTo create a tarball:")
+        print("\nTo create a tarball:")
         print(f"  cd {self.output_dir}")
-        print(f"  tar -czf {self.mcp_name}-build{self.build_number:03d}.tar.gz build_{self.build_number:03d}")
+        print(
+            f"  tar -czf {self.mcp_name}-build{self.build_number:03d}.tar.gz build_{self.build_number:03d}"
+        )
 
         return self.build_dir
 
@@ -538,36 +527,29 @@ Output Structure:
               ├── server.py
               ├── requests_api.db
               └── requirements.txt
-"""
+""",
     )
 
     parser.add_argument(
         "--server-dir",
         required=True,
         type=Path,
-        help="Path to MCP server directory (e.g., requests_mcp_server)"
+        help="Path to MCP server directory (e.g., requests_mcp_server)",
     )
     parser.add_argument(
-        "--database",
-        required=True,
-        type=Path,
-        help="Path to database file (e.g., requests_api.db)"
+        "--database", required=True, type=Path, help="Path to database file (e.g., requests_api.db)"
     )
     parser.add_argument(
-        "--module-name",
-        required=True,
-        help="Python module name (e.g., requests, httpx)"
+        "--module-name", required=True, help="Python module name (e.g., requests, httpx)"
     )
     parser.add_argument(
         "--output",
         type=Path,
         default=Path("dist"),
-        help="Output directory for builds (default: dist)"
+        help="Output directory for builds (default: dist)",
     )
     parser.add_argument(
-        "--build-number",
-        type=int,
-        help="Specific build number (auto-increments if not specified)"
+        "--build-number", type=int, help="Specific build number (auto-increments if not specified)"
     )
 
     args = parser.parse_args()
@@ -578,7 +560,7 @@ Output Structure:
         database_path=args.database,
         module_name=args.module_name,
         output_dir=args.output,
-        build_number=args.build_number
+        build_number=args.build_number,
     )
 
     publisher.publish()

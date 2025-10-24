@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
 Publish Script for create-introspect-mcp Claude Code Skill
 
@@ -6,9 +6,9 @@ Creates a clean distribution build containing only the files needed for the
 Claude Code skill to function (excludes tests, dev config, etc.).
 
 Usage:
-    python publish.py
-    python publish.py --build-number 5
-    python publish.py --dry-run
+    uv run publish.py
+    uv run publish.py --build-number 5
+    uv run publish.py --dry-run
 """
 
 import argparse
@@ -27,13 +27,18 @@ class SkillPublisher:
 
         # Files/directories to include in the skill distribution
         self.include_patterns = [
-            "SKILL.md",  # Main skill definition
-            "scripts/introspect.py",
-            "scripts/create_database.py",
-            "scripts/create_mcp_server.py",
-            "scripts/validate_server.py",
-            "scripts/requirements.txt",
-            "scripts/__init__.py",
+            "src/SKILL.md",  # Main skill definition
+            "src/scripts/__init__.py",
+            "src/scripts/introspect.py",
+            "src/scripts/create_database.py",
+            "src/scripts/create_mcp_server.py",
+            "src/scripts/validate_server.py",
+            "src/scripts/create_full_mcp_server.py",
+            "src/scripts/divide_entities.py",
+            "src/scripts/verify_coverage.py",
+            "src/scripts/run_with_env.py",
+            "src/scripts/publish.py",  # For publishing generated MCP servers
+            "src/scripts/requirements.txt",
         ]
 
     def get_next_build_number(self) -> int:
@@ -61,8 +66,8 @@ class SkillPublisher:
         return max(build_numbers) + 1 if build_numbers else 1
 
     def format_build_name(self, build_number: int) -> str:
-        """Format build number with padding (e.g., build_0001)"""
-        return f"build_{build_number:04d}"
+        """Format build number with padding (e.g., build_001)"""
+        return f"build_{build_number:03d}"
 
     def create_build_directory(self, build_name: str) -> Path:
         """Create the build directory structure"""
@@ -77,13 +82,20 @@ class SkillPublisher:
         return build_path
 
     def copy_skill_files(self, dest_dir: Path):
-        """Copy all skill files to the build directory"""
+        """Copy all skill files to the build directory (flattening src/ structure)"""
         print("\n📦 Copying skill files...")
 
         copied_count = 0
         for pattern in self.include_patterns:
             source_path = self.root_dir / pattern
-            dest_path = dest_dir / pattern
+
+            # Flatten: src/SKILL.md → SKILL.md, src/scripts/foo.py → scripts/foo.py
+            if pattern.startswith("src/"):
+                relative_dest = pattern[4:]  # Remove "src/" prefix
+            else:
+                relative_dest = pattern
+
+            dest_path = dest_dir / relative_dest
 
             if not source_path.exists():
                 print(f"⚠️  Warning: Source file not found: {pattern}")
@@ -93,10 +105,10 @@ class SkillPublisher:
             dest_path.parent.mkdir(parents=True, exist_ok=True)
 
             if self.dry_run:
-                print(f"[DRY RUN] Would copy: {pattern}")
+                print(f"[DRY RUN] Would copy: {pattern} → {relative_dest}")
             else:
                 shutil.copy2(source_path, dest_path)
-                print(f"  ✓ {pattern}")
+                print(f"  ✓ {pattern} → {relative_dest}")
 
             copied_count += 1
 

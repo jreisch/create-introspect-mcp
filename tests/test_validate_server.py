@@ -1,9 +1,8 @@
 """Tests for validate_server.py script."""
 
-
 import pytest
 
-from scripts.validate_server import ServerValidator
+from src.scripts.validate_server import ServerValidator
 
 
 class TestServerValidator:

@@ -98,7 +98,7 @@ def sample_database(temp_dir, sample_json_file):
     db_path = temp_dir / "test.db"
 
     # Import and use create_database functionality
-    from scripts.create_database import DatabaseCreator
+    from src.scripts.create_database import DatabaseCreator
 
     creator = DatabaseCreator(str(db_path), verbose=False)
 
@@ -118,7 +118,7 @@ def sample_server_dir(temp_dir, sample_database):
     server_dir.mkdir()
 
     # Import and use create_mcp_server functionality
-    from scripts.create_mcp_server import create_mcp_server
+    from src.scripts.create_mcp_server import create_mcp_server
 
     create_mcp_server("test_module", str(sample_database), str(server_dir))
 

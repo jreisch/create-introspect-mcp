@@ -5,7 +5,7 @@ import json
 import pytest
 
 # Import the introspect module
-from scripts.introspect import (
+from src.scripts.introspect import (
     ModuleIntrospector,
     ParameterInfo,
 )

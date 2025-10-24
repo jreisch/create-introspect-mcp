@@ -1,9 +1,8 @@
 """Tests for create_mcp_server.py script."""
 
-
 import pytest
 
-from scripts.create_mcp_server import create_mcp_server, get_database_stats
+from src.scripts.create_mcp_server import create_mcp_server, get_database_stats
 
 
 class TestGetDatabaseStats:

@@ -44,7 +44,7 @@ class DatabaseCreator:
     @staticmethod
     def get_root_module(module_name: str) -> str:
         """Extract root module name from full module name"""
-        return module_name.split('.')[0] if '.' in module_name else module_name
+        return module_name.split(".")[0] if "." in module_name else module_name
 
     def create_schema(self):
         """Create database schema with FTS5 tables"""
